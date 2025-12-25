@@ -1,107 +1,11 @@
 Frame,Age,Gender,Emotion,Race
-170,30,Man,neutral,middle eastern
-220,27,Man,neutral,middle eastern
-240,27,Man,neutral,latino hispanic
-260,27,Man,fear,latino hispanic
-270,28,Man,fear,latino hispanic
-280,29,Man,neutral,latino hispanic
-290,29,Man,fear,latino hispanic
-310,30,Man,fear,asian
-320,30,Man,neutral,asian
-330,30,Man,happy,asian
-340,30,Man,happy,asian
-350,30,Man,happy,asian
-360,31,Man,neutral,asian
-370,32,Man,fear,asian
-380,32,Man,happy,white
-530,31,Man,neutral,white
-540,31,Man,neutral,white
-550,31,Woman,neutral,white
-560,31,Woman,neutral,white
-570,32,Man,happy,white
-580,32,Woman,surprise,white
-590,32,Woman,fear,white
-600,32,Man,neutral,white
-610,32,Man,happy,white
-620,32,Man,fear,white
-630,32,Man,neutral,white
-1310,32,Man,neutral,white
-1320,32,Man,happy,white
-1350,31,Man,neutral,white
-1500,32,Man,neutral,white
-1560,31,Man,happy,white
-1580,31,Man,happy,asian
-1880,32,Man,angry,asian
-1950,31,Man,neutral,asian
-1960,32,Man,happy,asian
-1970,32,Man,happy,latino hispanic
-2050,32,Man,fear,asian
-2090,32,Man,fear,asian
-2140,33,Man,neutral,latino hispanic
-2160,33,Man,neutral,latino hispanic
-2370,33,Man,fear,latino hispanic
-2850,32,Man,neutral,latino hispanic
-3010,32,Man,fear,latino hispanic
-3040,31,Man,surprise,latino hispanic
-3050,31,Man,happy,asian
-3060,30,Man,fear,asian
-3070,30,Man,surprise,asian
-3080,29,Man,fear,asian
-3090,29,Man,fear,asian
-3140,28,Man,fear,asian
-3160,28,Man,fear,asian
-3190,28,Man,fear,asian
-3290,28,Man,neutral,asian
-3460,28,Man,happy,asian
-3490,28,Man,neutral,latino hispanic
-3500,28,Man,fear,latino hispanic
-3510,29,Man,fear,latino hispanic
-3520,29,Man,neutral,latino hispanic
-3590,30,Man,sad,latino hispanic
-3600,30,Man,fear,latino hispanic
-3610,30,Man,neutral,latino hispanic
-3620,30,Man,neutral,latino hispanic
-3630,31,Man,neutral,latino hispanic
-3640,31,Man,neutral,latino hispanic
-3650,30,Man,neutral,latino hispanic
-3660,30,Man,neutral,latino hispanic
-3670,30,Man,neutral,latino hispanic
-3680,30,Man,fear,latino hispanic
-3690,29,Man,neutral,latino hispanic
-3700,30,Man,happy,latino hispanic
-3710,30,Man,sad,latino hispanic
-3720,30,Man,angry,latino hispanic
-3730,30,Man,angry,latino hispanic
-3740,30,Man,sad,latino hispanic
-3750,31,Man,sad,latino hispanic
-3760,31,Man,angry,latino hispanic
-3770,31,Man,sad,latino hispanic
-3780,31,Man,neutral,latino hispanic
-3790,31,Man,neutral,latino hispanic
-3930,31,Man,neutral,latino hispanic
-3950,32,Man,happy,latino hispanic
-3960,31,Man,happy,latino hispanic
-3970,32,Man,happy,latino hispanic
-3990,32,Man,neutral,latino hispanic
-4000,32,Man,neutral,asian
-4080,32,Man,neutral,asian
-4170,32,Man,neutral,asian
-4200,32,Man,neutral,asian
-4210,32,Man,neutral,asian
-4430,32,Man,neutral,asian
-4440,31,Man,neutral,asian
-5470,31,Man,fear,asian
-5480,31,Man,neutral,asian
-5740,31,Man,neutral,asian
-5830,31,Man,happy,asian
-5900,31,Man,surprise,asian
-5920,31,Man,surprise,asian
-6010,31,Man,happy,asian
-6020,32,Man,happy,asian
-6060,32,Man,happy,asian
-6080,32,Man,surprise,asian
-6110,32,Man,neutral,asian
-6190,32,Man,happy,asian
-6250,32,Man,happy,asian
-6330,32,Man,neutral,asian
-6580,32,Man,neutral,asian
+60,32,Man,sad,asian
+130,33,Man,fear,asian
+190,32,Man,angry,asian
+210,32,Man,angry,asian
+220,31,Man,angry,asian
+240,32,Man,fear,asian
+250,31,Man,angry,asian
+380,32,Man,happy,asian
+390,32,Man,fear,asian
+400,32,Man,happy,asian
