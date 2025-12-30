@@ -4,41 +4,38 @@ PERFORMANCE REPORT - Facial
 
 SPEED METRICS:
    Total Frames: 392
-   Processed Frames: 33
-   Total Time: 41.10s
-   Average FPS: 0.80
-   Avg Inference: 983.83ms +/- 840.79ms
-   Min Inference: 664.48ms
-   Max Inference: 5518.44ms
+   Processed Frames: 39
+   Total Time: 83.47s
+   Average FPS: 0.47
 
 DETECTION METRICS:
-   Total Faces Detected: 33
+   Total Faces Detected: 39
    Avg Faces/Processed Frame: 1.00
-   Avg Confidence: 0.831 (83.1%)
-   Confidence Std Dev: 0.165
+   Avg Confidence: 0.801 (80.1%)
+   Confidence Std Dev: 0.190
 
 CONFIDENCE DISTRIBUTION:
-   High (>=0.7): 24 (72.7%)
-   Medium (0.4-0.7): 9 (27.3%)
+   High (>=0.7): 26 (66.7%)
+   Medium (0.4-0.7): 13 (33.3%)
    Low (<0.4): 0 (0.0%)
 
 TOP DETECTED EMOTIONS:
-   happy          :    13 (39.4%)
-   surprise       :     9 (27.3%)
-   fear           :     7 (21.2%)
-   sad            :     4 (12.1%)
+   happy       :    17 (43.6%)
+   surprise    :    10 (25.6%)
+   neutral     :     6 (15.4%)
+   fear        :     4 (10.3%)
+   angry       :     2 (5.1%)
 
 GENDER DISTRIBUTION:
-   Man            :    28 (84.8%)
-   Woman          :     5 (15.2%)
+   Man         :    38 (97.4%)
+   Woman       :     1 (2.6%)
 
 RACE DISTRIBUTION:
-   white          :    33 (100.0%)
+   white       :    39 (100.0%)
 
 AGE STATISTICS:
-   Average Age: 28.8
-   Median Age: 28.0
-   Min Age: 27
-   Max Age: 32
-
+   Average Age: 29.2
+   Median Age: 30.0
+   Min Age: 23
+   Max Age: 31
 ======================================================================

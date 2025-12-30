@@ -8,35 +8,32 @@ from datetime import datetime
 import time
 import glob
 
-# video_files = "videos/*"      # All video files in videos folder
-# Webcam = None
-video_files = "D:/VS Code/Deepface/Faces/Facial.mp4"
+# For optional ground truth metrics
+from sklearn.metrics import accuracy_score
 
+# === VIDEO FILES CONFIG ===
+video_files = None  # None = webcam
 frame_skip = 10
 smoothing_window = 10
 
 # Performance settings
-DETECTOR_BACKEND = 'opencv'  # Faster: opencv, ssd, mtcnn | Slower but accurate: retinaface
-CONFIDENCE_THRESHOLD = 0.5   # Minimum confidence to accept prediction
+DETECTOR_BACKEND = 'mtcnn'  # 'opencv', 'ssd', 'mtcnn', 'retinaface'
 
 print("Initializing DeepFace models...")
 print(f"Using detector: {DETECTOR_BACKEND}")
 
 # ===== PROCESS VIDEO FILES =====
 def get_video_list(video_files):
-    """Convert video_files input to a list of video paths"""
     if video_files is None:
         return [None]  # Webcam
     elif isinstance(video_files, str):
         if '*' in video_files:
-            # Glob pattern
             files = glob.glob(video_files)
             if not files:
                 print(f"No files found matching pattern: {video_files}")
                 return []
             return sorted(files)
         else:
-            # Single file
             return [video_files]
     elif isinstance(video_files, list):
         return video_files
@@ -44,11 +41,8 @@ def get_video_list(video_files):
         return []
 
 def process_video(video_path, video_index=1, total_videos=1):
-    """Process a single video and generate report"""
-
-    # Video name for report
+    # Video name
     if video_path is None:
-        # Webcam
         date_prefix = datetime.now().strftime("%Y%m%d")
         video_name = f"Webcam_{date_prefix}"
     else:
@@ -58,14 +52,16 @@ def process_video(video_path, video_index=1, total_videos=1):
     print(f"Processing video {video_index}/{total_videos}: {video_name}")
     print("=" * 70)
 
-    # Open video
     cap = cv2.VideoCapture(0 if video_path is None else video_path)
-
     if not cap.isOpened():
         print(f"Error: Could not open video {video_path}")
         return
 
-    # Initialize counters
+    # Create folder for frames
+    output_dir = os.path.join("Video_Frames", video_name)
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Counters
     frame_count = 0
     processed_frames = 0
     total_faces_detected = 0
@@ -76,65 +72,59 @@ def process_video(video_path, video_index=1, total_videos=1):
     race_window = deque(maxlen=smoothing_window)
     last_text = "Loading..."
 
-    # Performance tracking
-    inference_times = []
-    confidence_scores = []
-    start_time = time.time()
-
-    # Detection counters
-    emotion_counter = Counter()
-    gender_counter = Counter()
-    race_counter = Counter()
-    age_list = []
-
     # Data storage
     data = {
-        "Frame": [],
-        "Age": [],
-        "Gender": [],
-        "Emotion": [],
-        "Race": [],
-        "Confidence": [],
-        "InferenceTime": []
+        "Frame": [], "Predicted_Age": [], "True_Age": [],
+        "Predicted_Gender": [], "True_Gender": [],
+        "Predicted_Emotion": [], "True_Emotion": [],
+        "Predicted_Race": [], "True_Race": [],
+        "Age_Correct": [], "Gender_Correct": [],
+        "Emotion_Correct": [], "Race_Correct": []
     }
 
+    # Ground truth
+    ground_truth = {}
+    for f in range(10, 41):
+        ground_truth[f] = {"Age": 28, "Gender": "Man", "Emotion": "surprise", "Race": "white"}
+    for f in range(70, 101):
+        ground_truth[f] = {"Age": 28, "Gender": "Man", "Emotion": "happy", "Race": "white"}
+    for f in range(130, 151):
+        ground_truth[f] = {"Age": 28, "Gender": "Man", "Emotion": "disgust", "Race": "white"}
+    for f in range(180, 211):
+        ground_truth[f] = {"Age": 28, "Gender": "Man", "Emotion": "sad", "Race": "white"}
+    for f in range(230, 261):
+        ground_truth[f] = {"Age": 28, "Gender": "Man", "Emotion": "surprise", "Race": "white"}
+    for f in range(290, 321):
+        ground_truth[f] = {"Age": 28, "Gender": "Man", "Emotion": "happy", "Race": "white"}
+    for f in range(340, 371):
+        ground_truth[f] = {"Age": 28, "Gender": "Man", "Emotion": "surprise", "Race": "white"}
+
     def analyze_face(frame):
-        """
-        Uses DeepFace library for facial analysis
-        DeepFace analyzes: age, gender, emotion, and race
-        """
         try:
-            inference_start = time.time()
-
             result = DeepFace.analyze(
-                frame,                              # Input image/frame
-                actions=["age", "gender", "emotion", "race"],  # What to analyze
-                enforce_detection=False,            # Don't crash if no face found
-                detector_backend=DETECTOR_BACKEND,  # Face detection method
-                silent=True                         # No verbose output
+                frame,
+                actions=["age", "gender", "emotion", "race"],
+                enforce_detection=False,
+                detector_backend=DETECTOR_BACKEND,
+                silent=True
             )
-
-            inference_time = (time.time() - inference_start) * 1000
             r = result[0] if isinstance(result, list) else result
-
-            # Check if face was actually detected
             if not r.get("region"):
                 return None
-
-            # Extract DeepFace results
-            age = r.get("age", 0)                          # Age prediction
-            gender = r.get("dominant_gender", "Unknown")   # Male/Female
-            emotion = r.get("dominant_emotion", "Unknown") # Happy, Sad, Angry, etc.
-            race = r.get("dominant_race", "Unknown")       # Ethnicity prediction
-
-            # Get confidence from emotion scores
-            emotion_scores = r.get("emotion", {})
-            confidence = emotion_scores.get(emotion, 0) / 100.0 if emotion_scores else 0
-
-            return age, gender, emotion, race, confidence, inference_time
+            age = r.get("age", 0)
+            gender = r.get("dominant_gender", "Unknown")
+            emotion = r.get("dominant_emotion", "Unknown")
+            race = r.get("dominant_race", "Unknown")
+            confidence = r.get("emotion", {}).get(emotion, 0)/100.0 if r.get("emotion") else 0
+            return age, gender, emotion, race, confidence
         except Exception:
             return None
 
+    # Performance tracking
+    inference_times = []
+    confidence_scores = []
+
+    start_time = time.time()
     print("Starting analysis... Press 'q' to quit.")
 
     while cap.isOpened():
@@ -145,55 +135,50 @@ def process_video(video_path, video_index=1, total_videos=1):
         frame_count += 1
         frame_small = cv2.resize(frame, (640, 480))
 
-        # Analyze only every N frames
         if frame_count % frame_skip == 0:
             result = analyze_face(frame_small)
-
             if result:
-                age, gender, emotion, race, confidence, inference_time = result
+                age, gender, emotion, race, confidence = result
+                processed_frames += 1
+                total_faces_detected += 1
+                inference_times.append(confidence)  # optional for report
+                confidence_scores.append(confidence)
 
-                # Apply confidence threshold
-                if confidence >= CONFIDENCE_THRESHOLD:
-                    processed_frames += 1
-                    total_faces_detected += 1
+                # Smoothing
+                emotion_window.append(emotion)
+                age_window.append(age)
+                race_window.append(race)
+                smoothed_emotion = Counter(emotion_window).most_common(1)[0][0]
+                smoothed_age = int(sum(age_window)/len(age_window))
+                smoothed_race = Counter(race_window).most_common(1)[0][0]
 
-                    # Track performance
-                    inference_times.append(inference_time)
-                    confidence_scores.append(confidence)
+                last_text = f"{gender}, {smoothed_emotion}, {smoothed_age}, {smoothed_race}"
 
-                    # Add to smoothing windows
-                    emotion_window.append(emotion)
-                    age_window.append(age)
-                    race_window.append(race)
+                # Save frame
+                frame_filename = os.path.join(output_dir, f"frame_{frame_count:04d}.jpg")
+                cv2.imwrite(frame_filename, frame)
 
-                    # Compute smoothed values
-                    smoothed_emotion = Counter(emotion_window).most_common(1)[0][0]
-                    smoothed_age = int(sum(age_window) / len(age_window))
-                    smoothed_race = Counter(race_window).most_common(1)[0][0]
+                # Get ground truth
+                gt = ground_truth.get(frame_count, {"Age": None, "Gender": None, "Emotion": None, "Race": None})
 
-                    last_text = f"{gender}, {smoothed_emotion}, {smoothed_age}, {smoothed_race}"
+                # Append data
+                data["Frame"].append(frame_count)
+                data["Predicted_Age"].append(smoothed_age)
+                data["True_Age"].append(gt["Age"])
+                data["Predicted_Gender"].append(gender)
+                data["True_Gender"].append(gt["Gender"])
+                data["Predicted_Emotion"].append(smoothed_emotion)
+                data["True_Emotion"].append(gt["Emotion"])
+                data["Predicted_Race"].append(smoothed_race)
+                data["True_Race"].append(gt["Race"])
+                data["Age_Correct"].append(smoothed_age == gt["Age"])
+                data["Gender_Correct"].append(gender == gt["Gender"])
+                data["Emotion_Correct"].append(smoothed_emotion == gt["Emotion"])
+                data["Race_Correct"].append(smoothed_race == gt["Race"])
 
-                    # Update counters
-                    emotion_counter[smoothed_emotion] += 1
-                    gender_counter[gender] += 1
-                    race_counter[smoothed_race] += 1
-                    age_list.append(smoothed_age)
-
-                    # Save data
-                    data["Frame"].append(frame_count)
-                    data["Age"].append(smoothed_age)
-                    data["Gender"].append(gender)
-                    data["Emotion"].append(smoothed_emotion)
-                    data["Race"].append(smoothed_race)
-                    data["Confidence"].append(confidence)
-                    data["InferenceTime"].append(inference_time)
-
-        # Draw last known result
         cv2.putText(frame, last_text, (20, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-
         cv2.imshow("DeepFace Analysis", frame)
-
         if cv2.waitKey(1) & 0xFF == ord('q'):
             print("\nStopping analysis...")
             break
@@ -201,92 +186,76 @@ def process_video(video_path, video_index=1, total_videos=1):
     cap.release()
     cv2.destroyAllWindows()
 
-    # ===== GENERATE REPORT =====
+    # ===== SAVE CSV =====
+    df = pd.DataFrame(data)
+    for col in ["Age_Correct","Gender_Correct","Emotion_Correct","Race_Correct"]:
+        df[col] = df[col].apply(lambda x: "True" if x else "False")
+    csv_filename = f"{video_name}-results.csv"
+    df.to_csv(csv_filename, index=False)
+    print(f"Frames saved in: {output_dir}")
+    print(f"CSV report saved: {csv_filename}")
+
+    # ===== SAVE TXT REPORT (original format) =====
     total_time = time.time() - start_time
-    avg_fps = processed_frames / total_time if total_time > 0 else 0
+    avg_fps = processed_frames/total_time if total_time>0 else 0
+    avg_conf = np.mean(confidence_scores) if confidence_scores else 0
+    std_conf = np.std(confidence_scores) if confidence_scores else 0
+    high_conf = sum(c>=0.7 for c in confidence_scores)
+    med_conf = sum((c>=0.4 and c<0.7) for c in confidence_scores)
+    low_conf = sum(c<0.4 for c in confidence_scores)
 
-    # Calculate statistics
-    avg_inference = np.mean(inference_times) if inference_times else 0
-    std_inference = np.std(inference_times) if inference_times else 0
-    min_inference = np.min(inference_times) if inference_times else 0
-    max_inference = np.max(inference_times) if inference_times else 0
-
-    avg_confidence = np.mean(confidence_scores) if confidence_scores else 0
-    std_confidence = np.std(confidence_scores) if confidence_scores else 0
-
-    high_conf = sum(1 for c in confidence_scores if c >= 0.7)
-    med_conf = sum(1 for c in confidence_scores if 0.4 <= c < 0.7)
-    low_conf = sum(1 for c in confidence_scores if c < 0.4)
-    total_conf = len(confidence_scores)
+    emotion_counter = Counter(df["Predicted_Emotion"])
+    gender_counter = Counter(df["Predicted_Gender"])
+    race_counter = Counter(df["Predicted_Race"])
+    ages = df["Predicted_Age"]
 
     report_filename = f"{video_name}-report.txt"
-    csv_filename = f"{video_name}-results.csv"
-
-    # Write report
     with open(report_filename, 'w') as f:
-        f.write("=" * 70 + "\n")
+        f.write("="*70+"\n")
         f.write(f"PERFORMANCE REPORT - {video_name}\n")
-        f.write("=" * 70 + "\n\n")
+        f.write("="*70+"\n\n")
 
         f.write("SPEED METRICS:\n")
         f.write(f"   Total Frames: {frame_count}\n")
         f.write(f"   Processed Frames: {processed_frames}\n")
         f.write(f"   Total Time: {total_time:.2f}s\n")
-        f.write(f"   Average FPS: {avg_fps:.2f}\n")
-        f.write(f"   Avg Inference: {avg_inference:.2f}ms +/- {std_inference:.2f}ms\n")
-        f.write(f"   Min Inference: {min_inference:.2f}ms\n")
-        f.write(f"   Max Inference: {max_inference:.2f}ms\n\n")
+        f.write(f"   Average FPS: {avg_fps:.2f}\n\n")
 
         f.write("DETECTION METRICS:\n")
         f.write(f"   Total Faces Detected: {total_faces_detected}\n")
-        if processed_frames > 0:
-            f.write(f"   Avg Faces/Processed Frame: {total_faces_detected/processed_frames:.2f}\n")
-        if confidence_scores:
-            f.write(f"   Avg Confidence: {avg_confidence:.3f} ({avg_confidence*100:.1f}%)\n")
-            f.write(f"   Confidence Std Dev: {std_confidence:.3f}\n\n")
+        f.write(f"   Avg Faces/Processed Frame: {total_faces_detected/processed_frames if processed_frames else 0:.2f}\n")
+        f.write(f"   Avg Confidence: {avg_conf:.3f} ({avg_conf*100:.1f}%)\n")
+        f.write(f"   Confidence Std Dev: {std_conf:.3f}\n\n")
 
-        if confidence_scores:
-            f.write("CONFIDENCE DISTRIBUTION:\n")
-            f.write(f"   High (>=0.7): {high_conf} ({high_conf/total_conf*100:.1f}%)\n")
-            f.write(f"   Medium (0.4-0.7): {med_conf} ({med_conf/total_conf*100:.1f}%)\n")
-            f.write(f"   Low (<0.4): {low_conf} ({low_conf/total_conf*100:.1f}%)\n\n")
+        f.write("CONFIDENCE DISTRIBUTION:\n")
+        f.write(f"   High (>=0.7): {high_conf} ({high_conf/processed_frames*100:.1f}%)\n")
+        f.write(f"   Medium (0.4-0.7): {med_conf} ({med_conf/processed_frames*100:.1f}%)\n")
+        f.write(f"   Low (<0.4): {low_conf} ({low_conf/processed_frames*100:.1f}%)\n\n")
 
         f.write("TOP DETECTED EMOTIONS:\n")
-        for emotion, count in emotion_counter.most_common(5):
-            pct = count / processed_frames * 100 if processed_frames > 0 else 0
-            f.write(f"   {emotion:15s}: {count:5d} ({pct:.1f}%)\n")
-
+        for emo, cnt in emotion_counter.most_common():
+            f.write(f"   {emo:<12}: {cnt:5d} ({cnt/processed_frames*100:.1f}%)\n")
         f.write("\nGENDER DISTRIBUTION:\n")
-        for gender, count in gender_counter.most_common():
-            pct = count / processed_frames * 100 if processed_frames > 0 else 0
-            f.write(f"   {gender:15s}: {count:5d} ({pct:.1f}%)\n")
-
+        for g, cnt in gender_counter.items():
+            f.write(f"   {g:<12}: {cnt:5d} ({cnt/processed_frames*100:.1f}%)\n")
         f.write("\nRACE DISTRIBUTION:\n")
-        for race, count in race_counter.most_common():
-            pct = count / processed_frames * 100 if processed_frames > 0 else 0
-            f.write(f"   {race:15s}: {count:5d} ({pct:.1f}%)\n")
-
-        if age_list:
-            f.write("\nAGE STATISTICS:\n")
-            f.write(f"   Average Age: {np.mean(age_list):.1f}\n")
-            f.write(f"   Median Age: {np.median(age_list):.1f}\n")
-            f.write(f"   Min Age: {np.min(age_list)}\n")
-            f.write(f"   Max Age: {np.max(age_list)}\n")
-
-        f.write("\n" + "=" * 70 + "\n")
-
-    # Save CSV results
-    pd.DataFrame(data).to_csv(csv_filename, index=False)
+        for r, cnt in race_counter.items():
+            f.write(f"   {r:<12}: {cnt:5d} ({cnt/processed_frames*100:.1f}%)\n")
+        f.write("\nAGE STATISTICS:\n")
+        f.write(f"   Average Age: {np.mean(ages):.1f}\n")
+        f.write(f"   Median Age: {np.median(ages):.1f}\n")
+        f.write(f"   Min Age: {np.min(ages)}\n")
+        f.write(f"   Max Age: {np.max(ages)}\n")
+        f.write("="*70+"\n")
+    print(f"TXT report saved: {report_filename}\n")
 
 # ===== MAIN EXECUTION =====
 video_list = get_video_list(video_files)
-
 if not video_list:
     print("No videos to process!")
 else:
     print(f"\n{'='*70}")
     print("DEEPFACE BATCH ANALYSIS")
     print(f"{'='*70}")
-
     for idx, video_path in enumerate(video_list, 1):
         process_video(video_path, idx, len(video_list))

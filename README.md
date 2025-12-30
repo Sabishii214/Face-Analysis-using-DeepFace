@@ -13,6 +13,7 @@ The easiest way to install deepface is to download it from PyPI. It's going to i
 
 ```bash
   $ pip install deepface
+  $ python -m pip install scikit-learn # For scikit-learn
 ```
 Alternatively, you can also install deepface from its source code. Source code may have new features not published in pip release yet.
  ```bash
