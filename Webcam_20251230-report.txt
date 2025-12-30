@@ -1,0 +1,41 @@
+======================================================================
+PERFORMANCE REPORT - Webcam_20251230
+======================================================================
+
+SPEED METRICS:
+   Total Frames: 250
+   Processed Frames: 25
+   Total Time: 24.80s
+   Average FPS: 1.01
+   Avg Inference: 689.49ms +/- 618.80ms
+   Min Inference: 537.53ms
+   Max Inference: 3720.60ms
+
+DETECTION METRICS:
+   Total Faces Detected: 25
+   Avg Faces/Processed Frame: 1.00
+   Avg Confidence: 0.838 (83.8%)
+   Confidence Std Dev: 0.149
+
+CONFIDENCE DISTRIBUTION:
+   High (>=0.7): 20 (80.0%)
+   Medium (0.4-0.7): 5 (20.0%)
+   Low (<0.4): 0 (0.0%)
+
+TOP DETECTED EMOTIONS:
+   happy          :    15 (60.0%)
+   neutral        :    10 (40.0%)
+
+GENDER DISTRIBUTION:
+   Man            :    25 (100.0%)
+
+RACE DISTRIBUTION:
+   white          :    25 (100.0%)
+
+AGE STATISTICS:
+   Average Age: 38.6
+   Median Age: 39.0
+   Min Age: 36
+   Max Age: 41
+
+======================================================================
