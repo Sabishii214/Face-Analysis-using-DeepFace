@@ -10,7 +10,7 @@ import glob
 
 # video_files = "videos/*"      # All video files in videos folder
 # Webcam = None
-video_files = None
+video_files = "D:/VS Code/Deepface/Faces/Facial.mp4"
 
 frame_skip = 10
 smoothing_window = 10
