@@ -1,0 +1,45 @@
+======================================================================
+PERFORMANCE REPORT: Webcam_20260104_154855
+======================================================================
+
+SPEED METRICS:
+   Total Frames: 1414
+   Processed Frames: 45
+   Total Time: 48.1s
+   Average FPS: 0.94
+
+DETECTION METRICS:
+   Total Faces Detected: 45
+   Avg Faces/Processed Frame: 1.00
+   Avg Confidence: 1.000 (100.0%)
+   Confidence Std Dev: 0.001
+
+CONFIDENCE DISTRIBUTION:
+   High (>=0.7): 45 (100.0%)
+   Medium (0.4-0.7): 0 (0.0%)
+   Low (<0.4): 0 (0.0%)
+
+TOP DETECTED EMOTIONS:
+  happy       :  31 (68.9%)
+  fear        :   9 (20.0%)
+  neutral     :   5 (11.1%)
+
+GENDER DISTRIBUTION:
+  Man         :  45 (100.0%)
+
+RACE DISTRIBUTION:
+  asian       :  42 (93.3%)
+  white       :   1 (2.2%)
+  indian      :   2 (4.4%)
+
+AGE STATISTICS:
+  Average Age: 31.2
+  Median Age: 31.0
+  Min Age: 30
+  Max Age: 32
+
+ACCURACY (GT Based):
+  Overall (3-pt): 65.9%
+  Gender Accuracy: 100.0%
+  Age MAE: 1.22 yrs
+======================================================================
