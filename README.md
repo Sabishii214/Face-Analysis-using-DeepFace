@@ -20,7 +20,14 @@ Alternatively, you can also install deepface from its source code. Source code m
  $ git clone https://github.com/serengil/deepface.git
 $ cd deepface
 $ pip install -e .
+
+## Install OpenCV
+
+### Inside your container (or environment), run:
 ```
+  $ pip install opencv-python
+```
+
 Once you installed the library, then you will be able to import it and use its functionalities.
 
 ```bash
@@ -28,4 +35,6 @@ from deepface import DeepFace
 ```
 
 ## Run
- Press Run or Ctrl+Alt+N
+```
+  $ python3 main.py
+```

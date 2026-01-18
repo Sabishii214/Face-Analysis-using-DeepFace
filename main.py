@@ -3,7 +3,7 @@ import cv2
 import pandas as pd
 import numpy as np
 from deepface import DeepFace
-from collections import deque, Counter
+from collections import Counter
 from datetime import datetime
 import time
 import glob
@@ -13,9 +13,8 @@ from queue import Queue
 # CONFIGURATION
 
 VIDEO_FILES = None         # None = webcam, or a path/glob like "videos/*.mp4"
-FRAME_SKIP = 4             # Faster updates than RetinaFace
-SMOOTHING_WINDOW = 4       # Balanced stability and response
-DETECTOR_BACKEND = 'mtcnn' # High precision with turbo optimization
+FRAME_SKIP = 4             # Processing every 4th frame for performance
+DETECTOR_BACKEND = 'mtcnn' # Best balance of speed and precision
 
 print(f"--- DEEPFACE INITIALIZATION ---")
 print(f"Backend Detector: {DETECTOR_BACKEND.upper()}")
@@ -47,52 +46,56 @@ def analyze_face(frame):
             enforce_detection=False,
             detector_backend=DETECTOR_BACKEND,
             align=True,
-            expand_percentage=10,
+            expand_percentage=15, # Increased for better context
             silent=True
         )
-        res = results[0] if isinstance(results, list) else results
-        if not res.get("region"):
-            return None
         
-        # Emotion Biasing Logic: Boost hard-to-detect emotions, penalize neutral
-        emotions = res.get("emotion", {}).copy()
-        if emotions:
-            weights = {
-                "angry": 2.5,
-                "disgust": 3.0,
-                "fear": 2.5,
-                "sad": 2.5,
-                "surprise": 2.5,
-                "happy": 1.0,
-                "neutral": 0.3  # Extreme penalty to force expression detection
-            }
-            for emo, weight in weights.items():
-                if emo in emotions:
-                    emotions[emo] *= weight
+        if not results or not isinstance(results, list):
+            return []
             
-            # Select new dominant emotion based on weighted scores
-            dominant_emotion = max(emotions, key=emotions.get)
-        else:
+        face_data = []
+        for res in results:
+            if not res.get("region"):
+                continue
+            
+            # Emotion Biasing Logic
+            emotions = res.get("emotion", {}).copy()
             dominant_emotion = res.get("dominant_emotion", "Unknown")
+            if emotions:
+                weights = {
+                    "angry": 2.5,
+                    "disgust": 3.0,
+                    "fear": 2.5,
+                    "sad": 2.5,
+                    "surprise": 2.5,
+                    "happy": 1.0,
+                    "neutral": 0.5 
+                }
+                for emo, weight in weights.items():
+                    if emo in emotions:
+                        emotions[emo] *= weight
+                dominant_emotion = max(emotions, key=emotions.get)
 
-        return (
-            res.get("age", 0),
-            res.get("dominant_gender", "Unknown"),
-            dominant_emotion,
-            res.get("dominant_race", "Unknown"),
-            res.get("face_confidence", 0),
-            res.get("region")
-        )
+            face_data.append({
+                "age": res.get("age", 0),
+                "gender": res.get("dominant_gender", "Unknown"),
+                "emotion": dominant_emotion,
+                "race": res.get("dominant_race", "Unknown"),
+                "confidence": res.get("face_confidence", 0),
+                "region": res.get("region")
+            })
+        return face_data
     except Exception:
         return None
 
 def process_video(video_path, video_index=1, total_videos=1):
     """Main processing pipeline for a single video source."""
     # Naming and setup
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     if video_path is None:
-        video_name = f"Webcam_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        video_name = f"Webcam_{timestamp}"
     else:
-        video_name = os.path.splitext(os.path.basename(video_path))[0]
+        video_name = f"{os.path.splitext(os.path.basename(video_path))[0]}_{timestamp}"
 
     print(f"\n[{video_index}/{total_videos}] Processing: {video_name}")
     
@@ -113,20 +116,11 @@ def process_video(video_path, video_index=1, total_videos=1):
     total_samples = 0
     match_counts = {"Age": 0, "Gender": 0, "Race": 0}
     
-    emotion_window = deque(maxlen=SMOOTHING_WINDOW)
-    age_window = deque(maxlen=SMOOTHING_WINDOW)
-    race_window = deque(maxlen=SMOOTHING_WINDOW)
     confidence_scores = []
+    faces_data_current = [] # Raw data for HUD and logging
+    faces_info = []         # Pre-calculated coordinates and labels for drawing
     
-    # HUD State
-    current_region = None
-    smoothed_age = "N/A"
-    smoothed_emotion = "N/A"
-    smoothed_race = "N/A"
-    gender = "N/A"
-    last_text = "Initializing..."
-
-    # Ground Truth Setup
+    # Ground Truth Setup (Only for primary face in webcam)
     session_gt = {"Age": 0, "Gender": "N/A", "Emotion": "N/A", "Race": "N/A"}
     if video_path is None:
         print("\n--- WEBCAM SESSION DATA ---")
@@ -161,12 +155,13 @@ def process_video(video_path, video_index=1, total_videos=1):
     h, w = first_frame.shape[:2]
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0) # Reset
 
+    cv2.namedWindow("DeepFace Analysis", cv2.WINDOW_GUI_NORMAL)
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     orig_writer = cv2.VideoWriter(f"{video_name}_original.mp4", fourcc, 20.0, (w, h))
     annot_writer = cv2.VideoWriter(f"{video_name}_annotated.mp4", fourcc, 20.0, (w, h))
 
     data_log = {
-        "Frame": [], "Predicted_Age": [], "True_Age": [],
+        "Frame": [], "Face_ID": [], "Predicted_Age": [], "True_Age": [],
         "Predicted_Gender": [], "True_Gender": [],
         "Predicted_Emotion": [], "True_Emotion": [],
         "Predicted_Race": [], "True_Race": [],
@@ -187,57 +182,61 @@ def process_video(video_path, video_index=1, total_videos=1):
         with results_lock:
             if results_shared["new"]:
                 results_shared["new"] = False
-                res, f_idx = results_shared["data"]
-                age, g_pred, emo, race, conf, reg = res
+                faces_data, f_idx = results_shared["data"]
                 
                 processed_frames += 1
-                total_faces_detected += 1
-                confidence_scores.append(conf)
-
-                emotion_window.append(emo)
-                age_window.append(age)
-                race_window.append(race)
+                faces_info = []
+                faces_data_current = faces_data
                 
-                smoothed_emotion = Counter(emotion_window).most_common(1)[0][0]
-                smoothed_age = int(sum(age_window)/len(age_window))
-                smoothed_race = Counter(race_window).most_common(1)[0][0]
-                gender = g_pred
-                last_text = f"{gender}, {smoothed_emotion}, {smoothed_age}, {smoothed_race}"
+                scale_x, scale_y = w/640, h/480
+                
+                for i, face in enumerate(faces_data):
+                    total_faces_detected += 1
+                    confidence_scores.append(face["confidence"])
+                    
+                    age = face["age"]
+                    gender = face["gender"]
+                    emo = face["emotion"]
+                    race = face["race"]
+                    reg = face["region"]
+                    
+                    # Label: Series of metrics without ID prefix
+                    text = f"{age}, {gender}, {emo}, {race}"
+                    rx, ry, rw, rh = int(reg['x']*scale_x), int(reg['y']*scale_y), int(reg['w']*scale_x), int(reg['h']*scale_y)
+                    faces_info.append(((rx, ry, rw, rh), text))
 
-                scale_x, scale_y = w/320, h/240
-                current_region = (int(reg['x']*scale_x), int(reg['y']*scale_y), int(reg['w']*scale_x), int(reg['h']*scale_y))
+                    # GT Comparison (Only for the first face)
+                    if i == 0:
+                        total_samples += 1
+                        match_counts["Age"] += (age == session_gt["Age"])
+                        match_counts["Gender"] += (gender == session_gt["Gender"])
+                        match_counts["Race"] += (race == session_gt["Race"])
 
-                # GT Comparison
-                total_samples += 1
-                match_counts["Age"] += (smoothed_age == session_gt["Age"])
-                match_counts["Gender"] += (gender == session_gt["Gender"])
-                match_counts["Race"] += (smoothed_race == session_gt["Race"])
-
-                # Logging
-                data_log["Frame"].append(f_idx)
-                data_log["Predicted_Age"].append(smoothed_age)
-                data_log["True_Age"].append(session_gt["Age"])
-                data_log["Predicted_Gender"].append(gender)
-                data_log["True_Gender"].append(session_gt["Gender"])
-                data_log["Predicted_Emotion"].append(smoothed_emotion)
-                data_log["True_Emotion"].append(session_gt["Emotion"])
-                data_log["Predicted_Race"].append(smoothed_race)
-                data_log["True_Race"].append(session_gt["Race"])
-                data_log["Age_Correct"].append(smoothed_age == session_gt["Age"])
-                data_log["Gender_Correct"].append(gender == session_gt["Gender"])
-                data_log["Emotion_Correct"].append(smoothed_emotion == session_gt["Emotion"])
-                data_log["Race_Correct"].append(smoothed_race == session_gt["Race"])
+                    # Logging
+                    data_log["Frame"].append(f_idx)
+                    data_log["Face_ID"].append(i)
+                    data_log["Predicted_Age"].append(age)
+                    data_log["True_Age"].append(session_gt["Age"] if i == 0 else "")
+                    data_log["Predicted_Gender"].append(gender)
+                    data_log["True_Gender"].append(session_gt["Gender"] if i == 0 else "")
+                    data_log["Predicted_Emotion"].append(emo)
+                    data_log["True_Emotion"].append(session_gt["Emotion"] if i == 0 else "")
+                    data_log["Predicted_Race"].append(race)
+                    data_log["True_Race"].append(session_gt["Race"] if i == 0 else "")
+                    data_log["Age_Correct"].append((age == session_gt["Age"]) if i == 0 else "")
+                    data_log["Gender_Correct"].append((gender == session_gt["Gender"]) if i == 0 else "")
+                    data_log["Emotion_Correct"].append((emo == session_gt["Emotion"]) if i == 0 else "")
+                    data_log["Race_Correct"].append((race == session_gt["Race"]) if i == 0 else "")
 
         # 2. Trigger new analysis if worker is ready
         if analysis_queue.empty() and frame_count % FRAME_SKIP == 0:
-            analysis_queue.put((cv2.resize(frame, (320, 240)), frame_count))
+            analysis_queue.put((cv2.resize(frame, (640, 480)), frame_count))
 
         # 3. Draw UI
         annot_frame = frame.copy()
-        if current_region:
-            rx, ry, rw, rh = current_region
+        for (rx, ry, rw, rh), text in faces_info:
             cv2.rectangle(annot_frame, (rx, ry), (rx+rw, ry+rh), (0, 255, 0), 2)
-            cv2.putText(annot_frame, last_text, (rx, ry-10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
+            cv2.putText(annot_frame, text, (rx, ry-10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
 
         # Translucent Panels
         overlay = annot_frame.copy()
@@ -252,13 +251,20 @@ def process_video(video_path, video_index=1, total_videos=1):
             cv2.putText(annot_frame, f"{k}: {v}", (20, 60 + i*25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
         cv2.putText(annot_frame, "PREDICTION", (right_panel_x + 10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-        if smoothed_age != "N/A":
-            p_vals = [smoothed_age, gender, smoothed_emotion, smoothed_race]
+        if faces_data_current:
+            # Face 0 Details (Original Vertical Layout)
+            f0 = faces_data_current[0]
+            p_vals = [f0["age"], f0["gender"], f0["emotion"], f0["race"]]
             p_keys = ["Age", "Gender", "Emotion", "Race"]
             for i, val in enumerate(p_vals):
                 cv2.putText(annot_frame, f"{p_keys[i]}: {val}", (right_panel_x + 10, 60 + i*25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            
+            # Others (Compact)
+            for i, face in enumerate(faces_data_current[1:4]): # Show up to 3 more
+                text = f"F{i+1}: {face['gender']}, {face['emotion']}"
+                cv2.putText(annot_frame, text, (right_panel_x + 10, 160 + i*15), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 0), 1)
         else:
-            cv2.putText(annot_frame, "Initializing...", (right_panel_x + 10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            cv2.putText(annot_frame, "Searching...", (right_panel_x + 10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
         annot_writer.write(annot_frame)
         cv2.imshow("DeepFace Analysis", annot_frame)
@@ -334,7 +340,19 @@ def process_video(video_path, video_index=1, total_videos=1):
         f.write(f"ACCURACY (GT Based):\n")
         f.write(f"  Overall (3-pt): {(sum(match_counts.values()) / (3 * total_samples)) * 100 if total_samples > 0 else 0:.1f}%\n")
         f.write(f"  Gender Accuracy: {match_counts['Gender']/total_samples*100 if total_samples > 0 else 0:.1f}%\n")
-        f.write(f"  Age MAE: {np.mean(np.abs(np.array(data_log['Predicted_Age']) - np.array(data_log['True_Age']))):.2f} yrs\n")
+        
+        # Filter out empty strings for numpy calculations (happens with multi-face logging)
+        pred_ages = np.array(data_log['Predicted_Age'])
+        true_ages = np.array([a for a in data_log['True_Age'] if str(a).isdigit() or isinstance(a, (int, float))])
+        if len(true_ages) == len(data_log['Predicted_Age']): # Only if they match in length (single user mostly)
+             f.write(f"  Age MAE: {np.mean(np.abs(pred_ages - true_ages)):.2f} yrs\n")
+        else:
+             # Match by index for primary face (Face_ID=0)
+             primary_indices = [idx for idx, fid in enumerate(data_log['Face_ID']) if fid == 0]
+             if primary_indices:
+                 p_pred = np.array([data_log['Predicted_Age'][i] for i in primary_indices])
+                 p_true = np.array([data_log['True_Age'][i] for i in primary_indices])
+                 f.write(f"  Age MAE (Primary Face): {np.mean(np.abs(p_pred - p_true)):.2f} yrs\n")
         f.write("="*70 + "\n")
     print(f"Results saved: {csv_filename}")
     print(f"Report saved: {report_filename}")
