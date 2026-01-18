@@ -1,0 +1,27 @@
+Frame,Face_ID,Predicted_Age,True_Age,Predicted_Gender,True_Gender,Predicted_Emotion,True_Emotion,Predicted_Race,True_Race,Age_Correct,Gender_Correct,Emotion_Correct,Race_Correct
+4,0,38,30,Man,Man,fear,neutral,white,asian,False,True,False,False
+8,0,29,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+220,0,27,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+244,0,25,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+264,0,27,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+288,0,27,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+312,0,27,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+336,0,30,30,Man,Man,neutral,neutral,latino hispanic,asian,True,True,True,False
+360,0,31,30,Man,Man,happy,neutral,latino hispanic,asian,False,True,False,False
+380,0,29,30,Man,Man,happy,neutral,white,asian,False,True,False,False
+404,0,29,30,Man,Man,happy,neutral,white,asian,False,True,False,False
+424,0,31,30,Man,Man,happy,neutral,latino hispanic,asian,False,True,False,False
+452,0,30,30,Man,Man,neutral,neutral,white,asian,True,True,True,False
+472,0,29,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+496,0,27,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+520,0,26,30,Man,Man,fear,neutral,asian,asian,False,True,False,True
+544,0,28,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+568,0,26,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+588,0,28,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+612,0,26,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+636,0,34,30,Man,Man,fear,neutral,asian,asian,False,True,False,True
+660,0,32,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+684,0,30,30,Man,Man,neutral,neutral,asian,asian,True,True,True,True
+704,0,31,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
+728,0,34,30,Man,Man,happy,neutral,asian,asian,False,True,False,True
+752,0,29,30,Man,Man,neutral,neutral,asian,asian,False,True,True,True
